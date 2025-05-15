@@ -8,6 +8,7 @@ import SchoolStats from "@/components/SchoolStats";
 import QuickLinks from "@/components/QuickLinks";
 import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
+import FormPenyewaan from "@/components/FormPenyewaan"
 
 const Index: React.FC = () => {
   return (
@@ -54,6 +55,7 @@ const Index: React.FC = () => {
         </section>
         
         <ProgramsOverview />
+        <FormPenyewaan />
         <LatestNews />
         <SchoolStats />
         <QuickLinks />

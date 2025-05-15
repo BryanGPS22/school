@@ -101,7 +101,7 @@ const Navbar: React.FC = () => {
           
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center">
-            <ul className="flex space-x-1">
+            <ul className="flex items-center space-x-1">
               {navLinks.map((item, index) => (
                 <li key={index} className="relative group">
                   {item.hasDropdown ? (
