@@ -14,6 +14,11 @@ interface RentalItem {
 }
 
 export default function RentalApp() {
+  // State untuk autentikasi admin
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  
   // State untuk input form
   const [nama, setNama] = useState("");
   const [barang, setBarang] = useState("");
@@ -24,11 +29,17 @@ export default function RentalApp() {
   // State untuk menyimpan semua data penyewaan
   const [rentalItems, setRentalItems] = useState<RentalItem[]>([]);
 
-  // Load data from localStorage when component mounts
+  // Load data dan admin status from localStorage when component mounts
   useEffect(() => {
     const savedData = localStorage.getItem('rentalItems');
     if (savedData) {
       setRentalItems(JSON.parse(savedData));
+    }
+    
+    // Check if admin is already logged in
+    const adminStatus = localStorage.getItem('rentalAdminStatus');
+    if (adminStatus === 'true') {
+      setIsAdmin(true);
     }
   }, []);
 
@@ -36,6 +47,28 @@ export default function RentalApp() {
   useEffect(() => {
     localStorage.setItem('rentalItems', JSON.stringify(rentalItems));
   }, [rentalItems]);
+  
+  // Handle admin login
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Tetapkan password admin sesuai keinginan Anda
+    const correctPassword = "admin123"; // Ganti dengan password yang lebih kuat
+    
+    if (password === correctPassword) {
+      setIsAdmin(true);
+      localStorage.setItem('rentalAdminStatus', 'true');
+      setShowLoginForm(false);
+    } else {
+      alert("Password salah!");
+    }
+    setPassword(""); // Reset password field
+  };
+  
+  // Handle admin logout
+  const handleLogout = () => {
+    setIsAdmin(false);
+    localStorage.removeItem('rentalAdminStatus');
+  };
 
   // Fungsi untuk menambah item baru
   const handleSubmit = (e: React.FormEvent) => {
@@ -69,17 +102,26 @@ export default function RentalApp() {
     setKeterangan("");
   };
 
-  // Fungsi untuk toggle status pengembalian
+  // Fungsi untuk toggle status pengembalian (hanya untuk admin)
   const toggleReturnStatus = (id: string) => {
-    setRentalItems(
-      rentalItems.map((item) =>
-        item.id === id ? { ...item, isReturned: !item.isReturned } : item
-      )
-    );
+    if (isAdmin) {
+      setRentalItems(
+        rentalItems.map((item) =>
+          item.id === id ? { ...item, isReturned: !item.isReturned } : item
+        )
+      );
+    } else {
+      alert("Hanya admin yang bisa mengubah status pengembalian");
+    }
   };
   
-  // Fungsi untuk menghapus item
+  // Fungsi untuk menghapus item (hanya untuk admin)
   const deleteItem = (id: string) => {
+    if (!isAdmin) {
+      alert("Hanya admin yang bisa menghapus data");
+      return;
+    }
+    
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
       setRentalItems(rentalItems.filter(item => item.id !== id));
     }
@@ -99,6 +141,55 @@ export default function RentalApp() {
   return (
     <div className="max-w-[1300px] mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6 text-center">Sistem Pencatatan Penyewaan Barang</h1>
+      
+      {/* Admin login/logout section */}
+      <div className="mb-6 flex justify-end">
+        {isAdmin ? (
+          <div className="flex items-center">
+            <span className="mr-2 text-green-600 font-medium">Mode Admin Aktif</span>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <div>
+            {showLoginForm ? (
+              <form onSubmit={handleLogin} className="flex items-center">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan password admin"
+                  className="mr-2 px-3 py-2 border border-gray-300 rounded-md"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors mr-2"
+                >
+                  Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLoginForm(false)}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Batal
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setShowLoginForm(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Admin Login
+              </button>
+            )}
+          </div>
+        )}
+      </div>
       
       {/* Form Input Data */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
@@ -186,6 +277,14 @@ export default function RentalApp() {
       <div className="bg-white p-6 rounded-lg shadow-md">
         <h2 className="text-xl font-semibold mb-4">Data Penyewaan</h2>
         
+        {!isAdmin && rentalItems.length > 0 && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-yellow-700">
+              <span className="font-bold">Info:</span> Anda sedang melihat sebagai pengunjung. Untuk mengubah status pengembalian atau menghapus data, silakan login sebagai admin.
+            </p>
+          </div>
+        )}
+        
         {rentalItems.length === 0 ? (
           <p className="text-gray-500 text-center py-4">Belum ada data penyewaan</p>
         ) : (
@@ -200,7 +299,7 @@ export default function RentalApp() {
                   <th className="py-2 px-4 border-b text-left">Tanggal Pengembalian</th>
                   <th className="py-2 px-4 border-b text-left">Keterangan</th>
                   <th className="py-2 px-4 border-b text-left">Status</th>
-                  <th className="py-2 px-4 border-b text-left">Aksi</th>
+                  {isAdmin && <th className="py-2 px-4 border-b text-left">Aksi</th>}
                 </tr>
               </thead>
               <tbody>
@@ -218,21 +317,24 @@ export default function RentalApp() {
                           type="checkbox"
                           checked={item.isReturned}
                           onChange={() => toggleReturnStatus(item.id)}
-                          className="h-4 w-4 text-blue-600 rounded border-gray-300 mr-2"
+                          className={`h-4 w-4 rounded border-gray-300 mr-2 ${!isAdmin ? "cursor-not-allowed opacity-60" : "cursor-pointer text-blue-600"}`}
+                          disabled={!isAdmin}
                         />
                         <span className={item.isReturned ? "text-green-600 font-medium" : "text-orange-500"}>
                           {item.isReturned ? "Sudah Kembali" : "Belum Kembali"}
                         </span>
                       </div>
                     </td>
-                    <td className="py-2 px-4 border-b">
-                      <button
-                        onClick={() => deleteItem(item.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Hapus
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td className="py-2 px-4 border-b">
+                        <button
+                          onClick={() => deleteItem(item.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Hapus
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
